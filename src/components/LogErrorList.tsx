@@ -45,6 +45,8 @@ const LogErrorList: React.FC<LogErrorListProps> = ({ configs, onRefreshFinished,
   const [instanceFilter, setInstanceFilter] = useState<'ALL' | 'STG' | 'DEV'>('ALL')
   const [sortKey, setSortKey] = useState<'env' | 'count' | 'lastSeen'>('count')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [selectedEntryIndices, setSelectedEntryIndices] = useState<Record<string, number>>({})
+  const [expandedHeights, setExpandedHeights] = useState<Record<string, boolean>>({})
 
   // Filter out ignored errors and filter by instance, then sort
   const errors = allErrors
@@ -141,6 +143,18 @@ const LogErrorList: React.FC<LogErrorListProps> = ({ configs, onRefreshFinished,
     return sortOrder === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
   }
 
+  const getEntryIndex = (sig: string) => selectedEntryIndices[sig] ?? 0
+  const isExpandedHeight = (sig: string) => expandedHeights[sig] ?? false
+
+  const setEntryIndex = (sig: string, index: number, max: number) => {
+    const newIndex = Math.max(0, Math.min(index, max - 1))
+    setSelectedEntryIndices(prev => ({ ...prev, [sig]: newIndex }))
+  }
+
+  const toggleHeight = (sig: string) => {
+    setExpandedHeights(prev => ({ ...prev, [sig]: !prev[sig] }))
+  }
+
   return (
     <div className="error-list">
       {errorMessage && <div className="error-alert">{errorMessage}</div>}
@@ -231,29 +245,50 @@ const LogErrorList: React.FC<LogErrorListProps> = ({ configs, onRefreshFinished,
                     <span className="value">{error.siteIds.join(', ') || 'N/A'}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="label">Last Request ID</span>
-                    <span className="value"><code>{error.lastRequestId || 'N/A'}</code></span>
+                    <span className="label">Selected occurrence Time</span>
+                    <span className="value">{dayjs(error.entries[getEntryIndex(error.signature)]?.timestamp).format('D. MMM YYYY, HH:mm:ss.SSS')}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="label">Last Session ID</span>
-                    <span className="value"><code>{error.lastSessionId || 'N/A'}</code></span>
+                    <span className="label">Request ID</span>
+                    <span className="value"><code>{error.entries[getEntryIndex(error.signature)]?.requestId || 'N/A'}</code></span>
                   </div>
                   <div className="detail-item">
-                    <span className="label">Request IDs ({error.requestIds?.length || 0})</span>
-                    <span className="value">
-                      {error.requestIds && error.requestIds.length > 0
-                        ? error.requestIds.map((id, i) => <code key={i} style={{ display: 'block', marginTop: i > 0 ? '4px' : '0' }}>{id}</code>)
-                        : <code>N/A</code>
-                      }
-                    </span>
+                    <span className="label">Session ID</span>
+                    <span className="value"><code>{error.entries[getEntryIndex(error.signature)]?.sessionId || 'N/A'}</code></span>
                   </div>
                 </div>
 
                 <div className="stacktrace-container">
                   <div className="stack-header">
-                    <span>Stacktrace / Raw Log</span>
+                    <div className="stack-header-left">
+                      <span>Stacktrace / Raw Log</span>
+                      {error.entries.length > 1 && (
+                        <div className="occurrence-nav">
+                          <button
+                            className="nav-arrow"
+                            disabled={getEntryIndex(error.signature) === 0}
+                            onClick={() => setEntryIndex(error.signature, getEntryIndex(error.signature) - 1, error.entries.length)}
+                          >
+                            &larr;
+                          </button>
+                          <span className="nav-info">{getEntryIndex(error.signature) + 1} / {error.entries.length}</span>
+                          <button
+                            className="nav-arrow"
+                            disabled={getEntryIndex(error.signature) >= error.entries.length - 1}
+                            onClick={() => setEntryIndex(error.signature, getEntryIndex(error.signature) + 1, error.entries.length)}
+                          >
+                            &rarr;
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <button className="height-toggle" onClick={() => toggleHeight(error.signature)}>
+                      {isExpandedHeight(error.signature) ? 'Collapse Height' : 'Expand Height'}
+                    </button>
                   </div>
-                  <pre className="stacktrace">{error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.entries.length - 1]?.raw || error.message}</pre>
+                  <pre className={`stacktrace ${isExpandedHeight(error.signature) ? 'full' : ''}`}>
+                    {error.entries[getEntryIndex(error.signature)]?.stacktrace || error.entries[getEntryIndex(error.signature)]?.raw || error.message}
+                  </pre>
                 </div>
 
                 <div className="incident-summary">
@@ -434,11 +469,64 @@ const LogErrorList: React.FC<LogErrorListProps> = ({ configs, onRefreshFinished,
         .detail-item .label { font-size: 0.6875rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; }
         .detail-item .value { font-size: 0.875rem; }
         .stacktrace-container { background: var(--bg-darker); border-radius: 8px; border: 1px solid var(--glass-border); overflow: hidden; }
-        .stack-header { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid var(--glass-border); font-size: 0.75rem; color: var(--text-secondary); }
+        .stack-header { 
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          padding: 0.5rem 1rem; 
+          background: rgba(255, 255, 255, 0.03); 
+          border-bottom: 1px solid var(--glass-border); 
+          font-size: 0.75rem; 
+          color: var(--text-secondary); 
+        }
+        .stack-header-left {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+        }
+        .occurrence-nav {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          background: rgba(0, 0, 0, 0.3);
+          padding: 2px 8px;
+          border-radius: 6px;
+          border: 1px solid var(--glass-border);
+        }
+        .nav-arrow {
+          background: transparent;
+          border: none;
+          color: var(--primary);
+          cursor: pointer;
+          font-size: 1rem;
+          padding: 0 4px;
+          display: flex;
+          align-items: center;
+          transition: opacity 0.2s;
+        }
+        .nav-arrow:disabled { opacity: 0.2; cursor: default; }
+        .nav-info {
+          font-family: monospace;
+          font-size: 0.75rem;
+          color: var(--text-primary);
+          min-width: 40px;
+          text-align: center;
+        }
+        .height-toggle {
+          background: rgba(56, 189, 248, 0.1);
+          border: 1px solid rgba(56, 189, 248, 0.2);
+          color: var(--primary);
+          padding: 4px 10px;
+          border-radius: 4px;
+          font-size: 0.6875rem;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .height-toggle:hover { background: rgba(56, 189, 248, 0.2); }
         .stack-actions { display: flex; gap: 1rem; }
-        .stack-header button { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; gap: 4px; }
-        .stack-header button:hover { color: var(--text-primary); }
-        .stacktrace { margin: 0; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #cbd5e1; overflow-x: auto; max-height: 400px; white-space: pre-wrap; }
+        .stack-header button { /* background reset handled by specific classes */ }
+        .stacktrace { margin: 0; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #cbd5e1; overflow-x: auto; max-height: 400px; white-space: pre-wrap; transition: max-height 0.3s ease-out; }
+        .stacktrace.full { max-height: none; }
         .incident-summary {
           margin-top: 1.5rem;
           padding: 1.25rem;
