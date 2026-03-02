@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ChevronDown, ChevronRight, BellOff, RefreshCw, CheckCircle2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, BellOff, RefreshCw, CheckCircle2, ArrowUp, ArrowDown } from 'lucide-react'
 import { ConnectionConfig } from '../App'
 import dayjs from 'dayjs'
 
@@ -44,13 +44,27 @@ const LogErrorList: React.FC<LogErrorListProps> = ({ configs, onRefreshFinished,
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [copySuccess, setCopySuccess] = useState<string | null>(null)
   const [instanceFilter, setInstanceFilter] = useState<'ALL' | 'STG' | 'DEV'>('ALL')
+  const [sortKey, setSortKey] = useState<'env' | 'count' | 'lastSeen'>('count')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
-  // Filter out ignored errors and filter by instance
-  const errors = allErrors.filter(err => {
-    const isIgnored = ignoredSignatures.includes(err.signature)
-    const matchesFilter = instanceFilter === 'ALL' || err.env === instanceFilter
-    return !isIgnored && matchesFilter
-  })
+  // Filter out ignored errors and filter by instance, then sort
+  const errors = allErrors
+    .filter(err => {
+      const isIgnored = ignoredSignatures.includes(err.signature)
+      const matchesFilter = instanceFilter === 'ALL' || err.env === instanceFilter
+      return !isIgnored && matchesFilter
+    })
+    .sort((a, b) => {
+      let comparison = 0
+      if (sortKey === 'count') {
+        comparison = a.count - b.count
+      } else if (sortKey === 'env') {
+        comparison = (a.env || '').localeCompare(b.env || '')
+      } else if (sortKey === 'lastSeen') {
+        comparison = dayjs(a.lastSeen).unix() - dayjs(b.lastSeen).unix()
+      }
+      return sortOrder === 'asc' ? comparison : -comparison
+    })
 
   const fetchLogs = async (specificConfig?: ConnectionConfig, envLabel?: 'STG' | 'DEV') => {
     const targetConfig = specificConfig || configs[currentEnv]
@@ -140,6 +154,20 @@ ${error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.ent
     setExpandedId(expandedId === index ? null : index)
   }
 
+  const handleSort = (key: 'env' | 'count' | 'lastSeen') => {
+    if (sortKey === key) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortOrder('desc') // Default to desc for new keys
+    }
+  }
+
+  const renderSortIcon = (key: 'env' | 'count' | 'lastSeen') => {
+    if (sortKey !== key) return null
+    return sortOrder === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+  }
+
   return (
     <div className="error-list">
       {errorMessage && <div className="error-alert">{errorMessage}</div>}
@@ -170,9 +198,15 @@ ${error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.ent
       <div className="list-header">
         <div className="col-exp"></div>
         <div className="col-sig">Error Message</div>
-        <div className="col-env">Env</div>
-        <div className="col-count">Count</div>
-        <div className="col-last">Last Seen</div>
+        <div className={`col-env sortable ${sortKey === 'env' ? 'active' : ''}`} onClick={() => handleSort('env')}>
+          Env {renderSortIcon('env')}
+        </div>
+        <div className={`col-count sortable ${sortKey === 'count' ? 'active' : ''}`} onClick={() => handleSort('count')}>
+          Count {renderSortIcon('count')}
+        </div>
+        <div className={`col-last sortable ${sortKey === 'lastSeen' ? 'active' : ''}`} onClick={() => handleSort('lastSeen')}>
+          Last Seen {renderSortIcon('lastSeen')}
+        </div>
         <div className="col-actions"></div>
       </div>
 
@@ -329,6 +363,18 @@ ${error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.ent
         .col-count { width: 80px; text-align: center; }
         .col-last { width: 140px; }
         .col-actions { width: 50px; }
+        .sortable { 
+          cursor: pointer; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          gap: 4px;
+          user-select: none;
+          transition: color 0.2s;
+        }
+        .sortable:hover { color: var(--primary); }
+        .sortable.active { color: var(--primary); }
+        .col-last.sortable { justify-content: flex-start; }
         .env-tag {
           font-size: 0.625rem;
           font-weight: 800;
