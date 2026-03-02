@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ChevronDown, ChevronRight, BellOff, RefreshCw, ArrowUp, ArrowDown } from 'lucide-react'
+import { ChevronDown, ChevronRight, BellOff, RefreshCw, ArrowUp, ArrowDown, ChevronLeft } from 'lucide-react'
 import { ConnectionConfig } from '../App'
 import dayjs from 'dayjs'
 
@@ -494,15 +494,21 @@ const LogErrorList: React.FC<LogErrorListProps> = ({ configs, onRefreshFinished,
           border: 1px solid var(--glass-border);
         }
         .nav-arrow {
-          background: transparent;
-          border: none;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid var(--glass-border);
           color: var(--primary);
           cursor: pointer;
-          font-size: 1rem;
-          padding: 0 4px;
+          border-radius: 4px;
+          width: 24px;
+          height: 24px;
           display: flex;
           align-items: center;
-          transition: opacity 0.2s;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+        .nav-arrow:hover:not(:disabled) {
+          background: rgba(56, 189, 248, 0.1);
+          border-color: var(--primary);
         }
         .nav-arrow:disabled { opacity: 0.2; cursor: default; }
         .nav-info {
@@ -573,6 +579,10 @@ const LogErrorList: React.FC<LogErrorListProps> = ({ configs, onRefreshFinished,
           padding: 2px 6px;
           border-radius: 4px;
         }
+        .primary-sm { background: var(--primary); color: #020617; border: none; padding: 8px 16px; border-radius: 6px; font-size: 0.8125rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
+        .primary-sm:hover { opacity: 0.9; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
+        .secondary-sm { background: rgba(255, 255, 255, 0.05); color: var(--text-primary); border: 1px solid var(--glass-border); padding: 8px 16px; border-radius: 6px; font-size: 0.8125rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
+        .secondary-sm:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--primary); }
         .success-btn { background: #22c55e; color: white; }
       `}</style>
     </div>
