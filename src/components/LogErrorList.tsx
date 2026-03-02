@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ChevronDown, ChevronRight, ExternalLink, BellOff, RefreshCw, CheckCircle2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, BellOff, RefreshCw, CheckCircle2 } from 'lucide-react'
 import { ConnectionConfig } from '../App'
 import dayjs from 'dayjs'
 
