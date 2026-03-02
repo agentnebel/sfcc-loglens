@@ -16,6 +16,7 @@ interface LogEntry {
 
 interface LogError {
   signature: string
+  title: string
   message: string
   count: number
   firstSeen: string
@@ -188,8 +189,9 @@ ${error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.ent
                 {expandedId === index ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
               </div>
               <div className="col-sig">
-                <span className="sig-text">{error.message}</span>
-                <span className="sig-message">Sites: {error.siteIds.join(', ')}</span>
+                <span className="sig-text">{error.title || 'Unknown Error'}</span>
+                <span className="sig-message">{error.message}</span>
+                <span className="sig-sites">Sites: {error.siteIds.join(', ')}</span>
               </div>
               <div className="col-env">
                 <span className={`env-tag ${error.env?.toLowerCase()}`}>{error.env}</span>
@@ -352,16 +354,31 @@ ${error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.ent
         .row-main { display: flex; align-items: center; padding: 1rem 1.5rem; cursor: pointer; }
         .sig-text { 
            display: block; 
-           font-weight: 600; 
-           color: var(--text-primary); 
+           font-weight: 700; 
+           color: var(--primary); 
            margin-bottom: 4px;
-           line-height: 1.4;
+           line-height: 1.2;
+           font-size: 0.9375rem;
         }
         .sig-message {
           display: block;
           font-size: 0.75rem;
           color: var(--text-secondary);
-          font-family: monospace;
+          font-family: 'JetBrains Mono', monospace;
+          margin-bottom: 4px;
+          opacity: 0.8;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .sig-sites {
+          display: block;
+          font-size: 0.6875rem;
+          color: var(--text-secondary);
+          opacity: 0.6;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
         }
         .count-badge {
           background: rgba(56, 189, 248, 0.15);

@@ -13,6 +13,7 @@ export interface LogEntry {
 
 export interface ErrorGroup {
     signature: string
+    title: string
     message: string
     count: number
     firstSeen: string
@@ -119,6 +120,7 @@ export class LogParser {
             if (!groups[signature]) {
                 groups[signature] = {
                     signature,
+                    title: this.extractTitle(cleanMsg),
                     message: cleanMsg,
                     count: 0,
                     firstSeen: entry.timestamp,
@@ -153,6 +155,34 @@ export class LogParser {
         }
 
         return Object.values(groups).sort((a, b) => b.count - a.count)
+    }
+
+    private extractTitle(message: string): string {
+        // 1. Check for JS Error types: TypeError, ReferenceError, etc.
+        const jsErrorMatch = message.match(/([A-Z][a-zA-Z]+Error):/)
+        if (jsErrorMatch) return jsErrorMatch[1]
+
+        // 2. Check for Java Exceptions: com.package.ExceptionName or just ExceptionName
+        // Look for things ending in Exception or Error followed by : or -
+        const javaExceptionMatch = message.match(/([A-Z][a-zA-Z0-9]+(?:Exception|Error))[:\s-]/)
+        if (javaExceptionMatch) return javaExceptionMatch[1]
+
+        // 3. Handle Blade logs: "thread info package.ClassName - message"
+        // Look for the part before the " - " but after any thread info
+        const bladeMatch = message.match(/(?:^|\s)([a-zA-Z0-9._]+\.[A-Z][a-zA-Z0-9]+)\s+-/)
+        if (bladeMatch) {
+            const parts = bladeMatch[1].split('.')
+            return parts[parts.length - 1] // Return ClassName
+        }
+
+        // 4. If it contains a ":", take the part before it if it looks like a type
+        const colonParts = message.split(':')
+        if (colonParts.length > 1 && colonParts[0].length < 60 && !colonParts[0].includes(' ')) {
+            return colonParts[0].trim()
+        }
+
+        // 5. Fallback: first 50 chars of the cleaned message
+        return message.length > 50 ? message.substring(0, 50).trim() + '...' : message.trim()
     }
 
     private getFingerprint(entry: LogEntry): string {
