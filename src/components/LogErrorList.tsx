@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ChevronDown, ChevronRight, BellOff, RefreshCw, CheckCircle2, ArrowUp, ArrowDown } from 'lucide-react'
+import { ChevronDown, ChevronRight, BellOff, RefreshCw, ArrowUp, ArrowDown } from 'lucide-react'
 import { ConnectionConfig } from '../App'
 import dayjs from 'dayjs'
 
@@ -42,7 +42,6 @@ const LogErrorList: React.FC<LogErrorListProps> = ({ configs, onRefreshFinished,
   const [allErrors, setAllErrors] = useState<LogError[]>([])
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [copySuccess, setCopySuccess] = useState<string | null>(null)
   const [instanceFilter, setInstanceFilter] = useState<'ALL' | 'STG' | 'DEV'>('ALL')
   const [sortKey, setSortKey] = useState<'env' | 'count' | 'lastSeen'>('count')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -123,32 +122,6 @@ const LogErrorList: React.FC<LogErrorListProps> = ({ configs, onRefreshFinished,
 
 
 
-  const handleCopyTemplate = async (error: LogError) => {
-    const reqIds = error.requestIds && error.requestIds.length > 0
-      ? error.requestIds.join(', ')
-      : (error.lastRequestId || 'N/A')
-    const template = `--- SFCC INCIDENT TEMPLATE ---
-Error Message: ${error.message}
-Signature: ${error.signature}
-Environment: ${error.env || 'N/A'}
-Site IDs: ${error.siteIds.join(', ') || 'N/A'}
-First Seen: ${dayjs(error.firstSeen).format('YYYY-MM-DD HH:mm:ss')} GMT
-Last Seen: ${dayjs(error.lastSeen).format('YYYY-MM-DD HH:mm:ss')} GMT
-Occurrences: ${error.count}
-Request IDs: ${reqIds}
-Session ID: ${error.lastSessionId || 'N/A'}
-
---- STACKTRACE / RAW LOG ---
-${error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.entries.length - 1]?.raw || error.message}
-`
-    try {
-      await navigator.clipboard.writeText(template)
-      setCopySuccess(error.signature)
-      setTimeout(() => setCopySuccess(null), 3000)
-    } catch (err) {
-      console.error('Clipboard failed', err)
-    }
-  }
 
   const toggleExpand = (index: number) => {
     setExpandedId(expandedId === index ? null : index)
@@ -283,14 +256,34 @@ ${error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.ent
                   <pre className="stacktrace">{error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.entries.length - 1]?.raw || error.message}</pre>
                 </div>
 
-                <div className="incident-actions">
-                  <button
-                    className={`primary-sm ${copySuccess === error.signature ? 'success-btn' : ''}`}
-                    onClick={() => handleCopyTemplate(error)}
-                  >
-                    {copySuccess === error.signature ? <CheckCircle2 size={16} /> : null}
-                    {copySuccess === error.signature ? ' Copied!' : 'Generate Incident Template'}
-                  </button>
+                <div className="incident-summary">
+                  <div className="summary-section-title">Incident Summary</div>
+                  <div className="summary-grid">
+                    <div className="summary-item">
+                      <span className="label">Environment</span>
+                      <span className="value"><span className={`env-tag ${error.env?.toLowerCase()}`}>{error.env}</span></span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="label">Occurrences</span>
+                      <span className="value">{error.count}</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="label">Last Seen</span>
+                      <span className="value">{dayjs(error.lastSeen).format('D. MMM YYYY, HH:mm:ss')}</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="label">First Seen</span>
+                      <span className="value">{dayjs(error.firstSeen).format('D. MMM YYYY, HH:mm:ss')}</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="label">Site IDs</span>
+                      <span className="value">{error.siteIds.join(', ') || 'N/A'}</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="label">Signature</span>
+                      <span className="value"><code>{error.signature}</code></span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -446,11 +439,52 @@ ${error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.ent
         .stack-header button { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; gap: 4px; }
         .stack-header button:hover { color: var(--text-primary); }
         .stacktrace { margin: 0; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #cbd5e1; overflow-x: auto; max-height: 400px; white-space: pre-wrap; }
-        .incident-actions { margin-top: 1.5rem; display: flex; justify-content: flex-end; }
-        .primary-sm { background: var(--primary); color: #020617; border: none; padding: 8px 16px; border-radius: 6px; font-size: 0.8125rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
-        .primary-sm:hover { opacity: 0.9; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
-        .secondary-sm { background: rgba(255, 255, 255, 0.05); color: var(--text-primary); border: 1px solid var(--glass-border); padding: 8px 16px; border-radius: 6px; font-size: 0.8125rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
-        .secondary-sm:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--primary); }
+        .incident-summary {
+          margin-top: 1.5rem;
+          padding: 1.25rem;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid var(--glass-border);
+          border-radius: 10px;
+        }
+        .summary-section-title {
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: var(--primary);
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          margin-bottom: 1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .summary-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 1.25rem;
+        }
+        .summary-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .summary-item .label {
+          font-size: 0.625rem;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+        }
+        .summary-item .value {
+          font-size: 0.8125rem;
+          color: var(--text-primary);
+        }
+        .summary-item code {
+          font-size: 0.75rem;
+          color: var(--primary);
+          background: rgba(56, 189, 248, 0.1);
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
         .success-btn { background: #22c55e; color: white; }
       `}</style>
     </div>
