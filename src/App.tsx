@@ -9,7 +9,6 @@ export interface ConnectionConfig {
     url: string
     username: string
     password?: string
-    logCenterUrl: string
 }
 
 export type EnvType = 'STG' | 'DEV';
@@ -18,12 +17,10 @@ const DEFAULT_CONFIGS: Record<EnvType, ConnectionConfig> = {
     STG: {
         url: 'https://staging-realm-name.demandware.net/on/demandware.servlet/webdav/Sites/Log',
         username: '',
-        logCenterUrl: 'https://logcenter-eu.visibility.commercecloud.salesforce.com/logcenter/',
     },
     DEV: {
         url: 'https://development-realm-name.demandware.net/on/demandware.servlet/webdav/Sites/Logs',
         username: '',
-        logCenterUrl: 'https://logcenter-eu.visibility.commercecloud.salesforce.com/logcenter/',
     }
 }
 
@@ -31,6 +28,9 @@ function App() {
     const [env, setEnv] = useState<EnvType>('STG')
     const [activeTab, setActiveTab] = useState('logs')
     const [lastRefresh, setLastRefresh] = useState('Not refreshed yet')
+    const [logCenterGlobalUrl, setLogCenterGlobalUrl] = useState(() => {
+        return localStorage.getItem('sfcc_log_center_url') || 'https://logcenter-eu.visibility.commercecloud.salesforce.com/logcenter/'
+    })
 
     // Multi-instance configurations
     const [configs, setConfigs] = useState<Record<EnvType, ConnectionConfig>>(() => {
@@ -47,6 +47,10 @@ function App() {
     useEffect(() => {
         localStorage.setItem('sfcc_configs', JSON.stringify(configs))
     }, [configs])
+
+    useEffect(() => {
+        localStorage.setItem('sfcc_log_center_url', logCenterGlobalUrl)
+    }, [logCenterGlobalUrl])
 
     // Ignore List State
     const [ignoredSignatures, setIgnoredSignatures] = useState<string[]>(() => {
@@ -74,7 +78,7 @@ function App() {
 
     return (
         <div className="app-container">
-            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} logCenterUrl={logCenterGlobalUrl} />
 
             <div className="main-content">
                 <Header lastRefresh={lastRefresh} />
@@ -135,7 +139,20 @@ function App() {
                     {activeTab === 'settings' && (
                         <div className="settings-content">
                             <div className="settings-header">
-                                <h2>Settings</h2>
+                                <div className="settings-header-left">
+                                    <h2>Settings</h2>
+                                    <div className="global-setting-inline">
+                                        <div className="input-group-compact">
+                                            <span className="compact-label">LogCenter:</span>
+                                            <input
+                                                className="compact-input"
+                                                value={logCenterGlobalUrl}
+                                                onChange={(e) => setLogCenterGlobalUrl(e.target.value)}
+                                                placeholder="Log Center URL"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                                 <div className="settings-env-switch">
                                     {(['STG', 'DEV'] as const).map((e) => (
                                         <button
@@ -172,6 +189,40 @@ function App() {
             padding-bottom: 1rem;
             border-bottom: 1px solid var(--glass-border);
         }
+        .settings-header-left {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        .global-setting-inline {
+            display: flex;
+            align-items: center;
+        }
+        .input-group-compact {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 6px;
+            padding: 2px 10px;
+            gap: 8px;
+        }
+        .compact-label {
+            font-size: 0.6875rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        .compact-input {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 0.8125rem;
+            width: 320px;
+            padding: 4px 0;
+        }
+        .compact-input:focus { outline: none; }
+
         .settings-env-switch {
             display: flex;
             background: rgba(255, 255, 255, 0.05);

@@ -2,41 +2,42 @@ import React from 'react'
 import { LayoutDashboard, Settings, FileText, BellOff, Link2 } from 'lucide-react'
 
 interface SidebarProps {
-    activeTab: string
-    setActiveTab: (tab: string) => void
+  activeTab: string
+  setActiveTab: (tab: string) => void
+  logCenterUrl: string
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
-    const menuItems = [
-        { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { id: 'logs', icon: FileText, label: 'Log Analysis' },
-        { id: 'mute', icon: BellOff, label: 'Ignore List' },
-        { id: 'settings', icon: Settings, label: 'Settings' },
-    ]
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logCenterUrl }) => {
+  const menuItems = [
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { id: 'logs', icon: FileText, label: 'Log Analysis' },
+    { id: 'mute', icon: BellOff, label: 'Ignore List' },
+    { id: 'settings', icon: Settings, label: 'Settings' },
+  ]
 
-    return (
-        <aside className="sidebar">
-            <nav className="sidebar-nav">
-                {menuItems.map((item) => (
-                    <button
-                        key={item.id}
-                        className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-                        onClick={() => setActiveTab(item.id)}
-                    >
-                        <item.icon size={20} />
-                        <span>{item.label}</span>
-                    </button>
-                ))}
-            </nav>
+  return (
+    <aside className="sidebar">
+      <nav className="sidebar-nav">
+        {menuItems.map((item) => (
+          <button
+            key={item.id}
+            className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(item.id)}
+          >
+            <item.icon size={20} />
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </nav>
 
-            <div className="sidebar-footer">
-                <a href="#" className="log-center-link">
-                    <Link2 size={16} />
-                    SFCC Log Center
-                </a>
-            </div>
+      <div className="sidebar-footer">
+        <a href={logCenterUrl} target="_blank" rel="noopener noreferrer" className="log-center-link">
+          <Link2 size={16} />
+          SFCC Log Center
+        </a>
+      </div>
 
-            <style>{`
+      <style>{`
         .sidebar {
           display: flex;
           flex-direction: column;
@@ -88,8 +89,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
           color: var(--primary);
         }
       `}</style>
-        </aside>
-    )
+    </aside>
+  )
 }
 
 export default Sidebar

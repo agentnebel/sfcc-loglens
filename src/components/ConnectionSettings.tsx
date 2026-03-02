@@ -55,15 +55,6 @@ const ConnectionSettings: React.FC<ConnectionSettingsProps> = ({ config, setConf
           />
         </div>
 
-        <div className="form-group">
-          <label><Globe size={16} /> Log Center Base URL</label>
-          <input
-            type="text"
-            value={config.logCenterUrl}
-            onChange={(e) => setConfig({ ...config, logCenterUrl: e.target.value })}
-            placeholder="https://logcenter..."
-          />
-        </div>
 
         <div className="form-group">
           <label><User size={16} /> Username / Email</label>
