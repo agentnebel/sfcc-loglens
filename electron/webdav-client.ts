@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { XMLParser } from 'fast-xml-parser'
+import https from 'https'
 
 export interface WebDAVFile {
     name: string
@@ -8,6 +9,12 @@ export interface WebDAVFile {
     size: number
     isDir: boolean
 }
+
+// [ZSCALER-BYPASS] Bypassing SSL validation for corporate environments where certificates 
+// might be intercepted (equivalent to verify=False in Python).
+const httpsAgent = new https.Agent({
+    rejectUnauthorized: false,
+});
 
 export class WebDAVClient {
     private parser = new XMLParser({
@@ -36,6 +43,7 @@ export class WebDAVClient {
                 Depth: '1',
                 'Content-Type': 'text/xml',
             },
+            httpsAgent, // Apply SSL bypass
         })
 
         const result = this.parser.parse(response.data)
@@ -64,6 +72,7 @@ export class WebDAVClient {
             url: `${baseUrl}${href}`,
             headers: this.authHeader,
             responseType: 'text',
+            httpsAgent, // Apply SSL bypass
         })
         return response.data
     }
