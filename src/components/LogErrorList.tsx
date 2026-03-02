@@ -106,27 +106,7 @@ const LogErrorList: React.FC<LogErrorListProps> = ({ configs, onRefreshFinished,
     fetchLogs()
   }, [])
 
-  const getLogCenterLink = (error: LogError) => {
-    try {
-      const lastSeen = dayjs(error.lastSeen)
-      const start = lastSeen.subtract(10, 'minute').toISOString()
-      const end = lastSeen.add(10, 'minute').toISOString()
 
-      const cfg = error.env ? (configs[error.env as 'STG' | 'DEV']) : configs[currentEnv]
-      const url = new URL(cfg.logCenterUrl)
-      url.searchParams.append('startTime', start)
-      url.searchParams.append('endTime', end)
-      // Take first 60 chars of message as search filter
-      url.searchParams.append('filter', error.message.substring(0, 60))
-      return url.toString()
-    } catch {
-      return configs[currentEnv].logCenterUrl
-    }
-  }
-
-  const handleOpenLogCenter = (error: LogError) => {
-    window.ipcRenderer.send('shell:open-external', getLogCenterLink(error))
-  }
 
   const handleCopyTemplate = async (error: LogError) => {
     const reqIds = error.requestIds && error.requestIds.length > 0
@@ -142,7 +122,6 @@ Last Seen: ${dayjs(error.lastSeen).format('YYYY-MM-DD HH:mm:ss')} GMT
 Occurrences: ${error.count}
 Request IDs: ${reqIds}
 Session ID: ${error.lastSessionId || 'N/A'}
-Log Center Link: ${getLogCenterLink(error)}
 
 --- STACKTRACE / RAW LOG ---
 ${error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.entries.length - 1]?.raw || error.message}
@@ -209,7 +188,7 @@ ${error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.ent
                 {expandedId === index ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
               </div>
               <div className="col-sig">
-                <span className="sig-text">{error.message.substring(0, 100)}...</span>
+                <span className="sig-text">{error.message}</span>
                 <span className="sig-message">Sites: {error.siteIds.join(', ')}</span>
               </div>
               <div className="col-env">
@@ -264,11 +243,6 @@ ${error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.ent
                 <div className="stacktrace-container">
                   <div className="stack-header">
                     <span>Stacktrace / Raw Log</span>
-                    <div className="stack-actions">
-                      <button className="link-btn" onClick={() => handleOpenLogCenter(error)}>
-                        <ExternalLink size={14} /> Log Center
-                      </button>
-                    </div>
                   </div>
                   <pre className="stacktrace">{error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.entries.length - 1]?.raw || error.message}</pre>
                 </div>
@@ -380,10 +354,8 @@ ${error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.ent
            display: block; 
            font-weight: 600; 
            color: var(--text-primary); 
-           margin-bottom: 2px;
-           white-space: nowrap;
-           overflow: hidden;
-           text-overflow: ellipsis;
+           margin-bottom: 4px;
+           line-height: 1.4;
         }
         .sig-message {
           display: block;
