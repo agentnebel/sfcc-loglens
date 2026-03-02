@@ -108,8 +108,17 @@ const LogErrorList: React.FC<LogErrorListProps> = ({ configs, onRefreshFinished,
 
   const getLogCenterLink = (error: LogError) => {
     try {
+      const lastSeen = dayjs(error.lastSeen)
+      const start = lastSeen.subtract(10, 'minute').toISOString()
+      const end = lastSeen.add(10, 'minute').toISOString()
+
       const cfg = error.env ? (configs[error.env as 'STG' | 'DEV']) : configs[currentEnv]
-      return cfg.logCenterUrl
+      const url = new URL(cfg.logCenterUrl)
+      url.searchParams.append('startTime', start)
+      url.searchParams.append('endTime', end)
+      // Take first 60 chars of message as search filter
+      url.searchParams.append('filter', error.message.substring(0, 60))
+      return url.toString()
     } catch {
       return configs[currentEnv].logCenterUrl
     }
@@ -403,7 +412,10 @@ ${error.entries[error.entries.length - 1]?.stacktrace || error.entries[error.ent
         .stack-header button:hover { color: var(--text-primary); }
         .stacktrace { margin: 0; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #cbd5e1; overflow-x: auto; max-height: 400px; white-space: pre-wrap; }
         .incident-actions { margin-top: 1.5rem; display: flex; justify-content: flex-end; }
-        .primary-sm { background: var(--primary); color: #020617; border: none; padding: 8px 16px; border-radius: 6px; font-size: 0.8125rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; }
+        .primary-sm { background: var(--primary); color: #020617; border: none; padding: 8px 16px; border-radius: 6px; font-size: 0.8125rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
+        .primary-sm:hover { opacity: 0.9; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
+        .secondary-sm { background: rgba(255, 255, 255, 0.05); color: var(--text-primary); border: 1px solid var(--glass-border); padding: 8px 16px; border-radius: 6px; font-size: 0.8125rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
+        .secondary-sm:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--primary); }
         .success-btn { background: #22c55e; color: white; }
       `}</style>
     </div>
