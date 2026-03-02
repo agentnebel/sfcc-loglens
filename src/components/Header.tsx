@@ -7,13 +7,10 @@ dayjs.extend(utc)
 dayjs.extend(timezone)
 
 interface HeaderProps {
-    env: 'STG' | 'DEV'
-    setEnv: (env: 'STG' | 'DEV') => void
     lastRefresh?: string
 }
 
-const Header: React.FC<HeaderProps> = ({ env, setEnv, lastRefresh }) => {
-    // ... same clock logic ...
+const Header: React.FC<HeaderProps> = ({ lastRefresh }) => {
     const [utcTime, setUtcTime] = useState(dayjs.utc().format('HH:mm:ss'))
     const [cetTime, setCetTime] = useState(dayjs.tz(dayjs(), 'Europe/Berlin').format('HH:mm:ss'))
 
@@ -38,18 +35,6 @@ const Header: React.FC<HeaderProps> = ({ env, setEnv, lastRefresh }) => {
                         </div>
                         <span className="subtitle">BY SVEN BELZ</span>
                     </div>
-                </div>
-
-                <div className="env-badge-container">
-                    {(['STG', 'DEV'] as const).map((e) => (
-                        <button
-                            key={e}
-                            className={`env-button ${env === e ? 'active' : ''}`}
-                            onClick={() => setEnv(e)}
-                        >
-                            {e}
-                        </button>
-                    ))}
                 </div>
             </div>
 

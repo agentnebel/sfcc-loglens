@@ -73,7 +73,7 @@ const LogErrorList: React.FC<LogErrorListProps> = ({ configs, onRefreshFinished,
         taggedResult.forEach(err => newMap.set(`${err.env}-${err.signature}`, err))
 
         return Array.from(newMap.values()).sort((a, b) =>
-          dayjs(b.lastSeen).valueOf() - dayjs(a.lastSeen).valueOf()
+          b.count - a.count
         )
       })
 
@@ -108,16 +108,8 @@ const LogErrorList: React.FC<LogErrorListProps> = ({ configs, onRefreshFinished,
 
   const getLogCenterLink = (error: LogError) => {
     try {
-      const lastSeen = dayjs(error.lastSeen)
-      const start = lastSeen.subtract(5, 'minute').toISOString()
-      const end = lastSeen.add(5, 'minute').toISOString()
-
       const cfg = error.env ? (configs[error.env as 'STG' | 'DEV']) : configs[currentEnv]
-      const url = new URL(cfg.logCenterUrl)
-      url.searchParams.append('startTime', start)
-      url.searchParams.append('endTime', end)
-      url.searchParams.append('filter', error.message.substring(0, 50))
-      return url.toString()
+      return cfg.logCenterUrl
     } catch {
       return configs[currentEnv].logCenterUrl
     }

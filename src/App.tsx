@@ -58,9 +58,7 @@ function App() {
         localStorage.setItem('sfcc_ignored_signatures', JSON.stringify(ignoredSignatures))
     }, [ignoredSignatures])
 
-    const handleEnvChange = (newEnv: EnvType) => {
-        setEnv(newEnv)
-    }
+
 
     const updateCurrentConfig = (newConfig: ConnectionConfig) => {
         setConfigs(prev => ({ ...prev, [env]: newConfig }))
@@ -79,7 +77,7 @@ function App() {
             <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
             <div className="main-content">
-                <Header env={env} setEnv={handleEnvChange} lastRefresh={lastRefresh} />
+                <Header lastRefresh={lastRefresh} />
 
                 <main className="content-scroll">
                     {activeTab === 'dashboard' && (
@@ -138,7 +136,17 @@ function App() {
                         <div className="settings-content">
                             <div className="settings-header">
                                 <h2>Settings</h2>
-                                <span className={`env-context-tag ${env.toLowerCase()}`}>Configuring {env}</span>
+                                <div className="settings-env-switch">
+                                    {(['STG', 'DEV'] as const).map((e) => (
+                                        <button
+                                            key={e}
+                                            className={`env-button ${env === e ? 'active' : ''}`}
+                                            onClick={() => setEnv(e)}
+                                        >
+                                            {e}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                             <ConnectionSettings
                                 config={configs[env]}
@@ -159,19 +167,39 @@ function App() {
         .settings-header {
             display: flex;
             align-items: center;
-            gap: 1.5rem;
+            justify-content: space-between;
             margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--glass-border);
         }
-        .env-context-tag {
+        .settings-env-switch {
+            display: flex;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            gap: 4px;
+        }
+        .settings-env-switch .env-button {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 6px 16px;
+            border-radius: 6px;
             font-size: 0.75rem;
             font-weight: 700;
-            padding: 4px 12px;
-            border-radius: 99px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        .env-context-tag.stg { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.2); }
-        .env-context-tag.dev { background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.2); }
+        .settings-env-switch .env-button:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .settings-env-switch .env-button.active {
+            background: var(--primary);
+            color: #020617;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+        }
 
         .content-header h2, .settings-header h2 { margin-bottom: 0; }
         .ignore-card { padding: 1.5rem; }
