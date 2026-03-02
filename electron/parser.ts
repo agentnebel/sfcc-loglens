@@ -158,31 +158,37 @@ export class LogParser {
     }
 
     private extractTitle(message: string): string {
-        // 1. Check for JS Error types: TypeError, ReferenceError, etc.
-        const jsErrorMatch = message.match(/([A-Z][a-zA-Z]+Error):/)
+        const trimmed = message.trim()
+
+        // 1. Check for Custom Uppercase Tags: "SHORT_ERROR:", "API_TIMEOUT:", etc.
+        const customTagMatch = trimmed.match(/^([A-Z0-9_-]{3,}):/)
+        if (customTagMatch) return customTagMatch[1]
+
+        // 2. Check for JS Error types: TypeError, ReferenceError, etc.
+        const jsErrorMatch = trimmed.match(/([A-Z][a-zA-Z]+Error):/)
         if (jsErrorMatch) return jsErrorMatch[1]
 
-        // 2. Check for Java Exceptions: com.package.ExceptionName or just ExceptionName
+        // 3. Check for Java Exceptions: com.package.ExceptionName or just ExceptionName
         // Look for things ending in Exception or Error followed by : or -
-        const javaExceptionMatch = message.match(/([A-Z][a-zA-Z0-9]+(?:Exception|Error))[:\s-]/)
+        const javaExceptionMatch = trimmed.match(/([A-Z][a-zA-Z0-9]+(?:Exception|Error))[:\s-]/)
         if (javaExceptionMatch) return javaExceptionMatch[1]
 
-        // 3. Handle Blade logs: "thread info package.ClassName - message"
+        // 4. Handle Blade logs: "thread info package.ClassName - message"
         // Look for the part before the " - " but after any thread info
-        const bladeMatch = message.match(/(?:^|\s)([a-zA-Z0-9._]+\.[A-Z][a-zA-Z0-9]+)\s+-/)
+        const bladeMatch = trimmed.match(/(?:^|\s)([a-zA-Z0-9._]+\.[A-Z][a-zA-Z0-9]+)\s+-/)
         if (bladeMatch) {
             const parts = bladeMatch[1].split('.')
             return parts[parts.length - 1] // Return ClassName
         }
 
-        // 4. If it contains a ":", take the part before it if it looks like a type
-        const colonParts = message.split(':')
+        // 5. If it contains a ":", take the part before it if it looks like a type
+        const colonParts = trimmed.split(':')
         if (colonParts.length > 1 && colonParts[0].length < 60 && !colonParts[0].includes(' ')) {
             return colonParts[0].trim()
         }
 
-        // 5. Fallback: first 50 chars of the cleaned message
-        return message.length > 50 ? message.substring(0, 50).trim() + '...' : message.trim()
+        // 6. Fallback: first 50 chars of the cleaned message
+        return trimmed.length > 50 ? trimmed.substring(0, 50).trim() + '...' : trimmed
     }
 
     private getFingerprint(entry: LogEntry): string {
