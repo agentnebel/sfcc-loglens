@@ -25,8 +25,9 @@ const DEFAULT_CONFIGS: Record<EnvType, ConnectionConfig> = {
 }
 
 function App() {
-    const [env, setEnv] = useState<EnvType>('STG')
     const [activeTab, setActiveTab] = useState('logs')
+    const [activeEnv, setActiveEnv] = useState<EnvType>('STG')
+    const [settingsView, setSettingsView] = useState<'STG' | 'DEV' | 'LogCenter'>('STG')
     const [lastRefresh, setLastRefresh] = useState('Not refreshed yet')
     const [logCenterGlobalUrl, setLogCenterGlobalUrl] = useState(() => {
         return localStorage.getItem('sfcc_log_center_url') || 'https://logcenter-eu.visibility.commercecloud.salesforce.com/logcenter/'
@@ -65,8 +66,10 @@ function App() {
 
 
     const updateCurrentConfig = (newConfig: ConnectionConfig) => {
-        setConfigs(prev => ({ ...prev, [env]: newConfig }))
+        const targetEnv = (settingsView === 'LogCenter' ? activeEnv : settingsView) as EnvType
+        setConfigs(prev => ({ ...prev, [targetEnv]: newConfig }))
     }
+
 
     const toggleIgnore = (signature: string) => {
         setIgnoredSignatures(prev =>
@@ -104,7 +107,7 @@ function App() {
                                 onRefreshFinished={(time) => setLastRefresh(time)}
                                 ignoredSignatures={ignoredSignatures}
                                 onIgnore={toggleIgnore}
-                                currentEnv={env}
+                                currentEnv={activeEnv}
                             />
                         </div>
                     )}
@@ -141,34 +144,50 @@ function App() {
                             <div className="settings-header">
                                 <div className="settings-header-left">
                                     <h2>Settings</h2>
-                                    <div className="global-setting-inline">
-                                        <div className="input-group-compact">
-                                            <span className="compact-label">LogCenter:</span>
-                                            <input
-                                                className="compact-input"
-                                                value={logCenterGlobalUrl}
-                                                onChange={(e) => setLogCenterGlobalUrl(e.target.value)}
-                                                placeholder="Log Center URL"
-                                            />
-                                        </div>
-                                    </div>
                                 </div>
                                 <div className="settings-env-switch">
                                     {(['STG', 'DEV'] as const).map((e) => (
                                         <button
                                             key={e}
-                                            className={`env-button ${env === e ? 'active' : ''}`}
-                                            onClick={() => setEnv(e)}
+                                            className={`env-button ${settingsView === e ? 'active' : ''}`}
+                                            onClick={() => {
+                                                setSettingsView(e)
+                                                setActiveEnv(e)
+                                            }}
                                         >
                                             {e}
                                         </button>
                                     ))}
+                                    <div className="switch-divider"></div>
+                                    <button
+                                        className={`env-button logcenter ${settingsView === 'LogCenter' ? 'active' : ''}`}
+                                        onClick={() => setSettingsView('LogCenter')}
+                                    >
+                                        Log Center
+                                    </button>
                                 </div>
                             </div>
-                            <ConnectionSettings
-                                config={configs[env]}
-                                setConfig={updateCurrentConfig}
-                            />
+
+                            {settingsView === 'LogCenter' ? (
+                                <div className="card settings-card">
+                                    <h3>Global Log Center</h3>
+                                    <div className="form-group-full">
+                                        <label>Log Center Base URL</label>
+                                        <input
+                                            className="full-input"
+                                            value={logCenterGlobalUrl}
+                                            onChange={(e) => setLogCenterGlobalUrl(e.target.value)}
+                                            placeholder="https://logcenter-eu.visibility.commercecloud.salesforce.com/logcenter/"
+                                        />
+                                        <p className="hint">This URL is used for the sidebar link and incident templates.</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <ConnectionSettings
+                                    config={configs[settingsView as EnvType]}
+                                    setConfig={updateCurrentConfig}
+                                />
+                            )}
                         </div>
                     )}
                 </main>
@@ -192,36 +211,7 @@ function App() {
         .settings-header-left {
             display: flex;
             align-items: center;
-            gap: 2rem;
         }
-        .global-setting-inline {
-            display: flex;
-            align-items: center;
-        }
-        .input-group-compact {
-            display: flex;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--glass-border);
-            border-radius: 6px;
-            padding: 2px 10px;
-            gap: 8px;
-        }
-        .compact-label {
-            font-size: 0.6875rem;
-            font-weight: 700;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-        }
-        .compact-input {
-            background: transparent;
-            border: none;
-            color: var(--text-primary);
-            font-size: 0.8125rem;
-            width: 320px;
-            padding: 4px 0;
-        }
-        .compact-input:focus { outline: none; }
 
         .settings-env-switch {
             display: flex;
@@ -230,6 +220,13 @@ function App() {
             border-radius: 8px;
             border: 1px solid var(--glass-border);
             gap: 4px;
+            align-items: center;
+        }
+        .switch-divider {
+            width: 1px;
+            height: 16px;
+            background: var(--glass-border);
+            margin: 0 4px;
         }
         .settings-env-switch .env-button {
             background: transparent;
@@ -241,6 +238,7 @@ function App() {
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s;
+            white-space: nowrap;
         }
         .settings-env-switch .env-button:hover {
             color: var(--text-primary);
@@ -250,6 +248,43 @@ function App() {
             background: var(--primary);
             color: #020617;
             box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+        }
+        .settings-env-switch .env-button.logcenter.active {
+            background: #fff;
+            color: #020617;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .form-group-full {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .form-group-full label {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .full-input {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            font-size: 0.9375rem;
+            width: 100%;
+        }
+        .full-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .hint {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin: 0;
+            opacity: 0.7;
         }
 
         .content-header h2, .settings-header h2 { margin-bottom: 0; }
