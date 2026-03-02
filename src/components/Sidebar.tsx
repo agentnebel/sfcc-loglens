@@ -31,7 +31,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logCenterUrl
       </nav>
 
       <div className="sidebar-footer">
-        <a href={logCenterUrl} target="_blank" rel="noopener noreferrer" className="log-center-link">
+        <a
+          href="#"
+          className="log-center-link"
+          onClick={(e) => {
+            e.preventDefault()
+            window.ipcRenderer.send('shell:open-external', logCenterUrl)
+          }}
+        >
           <Link2 size={16} />
           SFCC Log Center
         </a>
